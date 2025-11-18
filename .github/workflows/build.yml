@@ -20,42 +20,44 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # 3. Install Windows 10 SDK 22621 (Fix Platform.xml error)
-      - name: Install Windows 10 SDK 10.0.22621.0
+      # 3. Install Windows 10 SDK 22621 (non-redirect, stable official link)
+      - name: Install Windows 10 SDK 10.0.22621
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2231346" -OutFile "winsdk.exe"
-          Start-Process .\winsdk.exe -ArgumentList "/quiet" -NoNewWindow -Wait
+          Write-Host "Downloading Windows SDK 22621..."
+          Invoke-WebRequest -Uri "https://download.microsoft.com/download/4/5/c/45c50e2f-4fd1-4f70-8298-1dfd3f24fcbf/windowssdk_win10_22621.exe" -OutFile "winsdk.exe"
+          Write-Host "Installing Windows SDK..."
+          Start-Process .\winsdk.exe -ArgumentList "/quiet /norestart" -NoNewWindow -Wait
+          Write-Host "Windows SDK installed."
 
       # 4. Restore packages
       - name: Restore NuGet packages
         run: dotnet restore
 
-      # 5. Build (Release)
+      # 5. Build Release
       - name: Build Release
         run: dotnet build --configuration Release
 
-      # 6. Publish (Self-contained EXE)
+      # 6. Publish Win-x64 (self-contained OFF)
       - name: Publish Win-x64
         run: dotnet publish MisakaTranslator-WPF/MisakaTranslator-WPF.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64
 
-      # 7. Upload artifacts
+      # 7. Upload build artifact
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: MisakaTranslator-win-x64
-          path: publish/win-x64
+          path: publish/win-x64/
 
-      # 8. Auto Release (only on push)
+      # 8. Auto Release (tag + release)
       - name: Create Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "auto-${{ github.run_number }}"
-          name: "Auto Release #${{ github.run_number }}"
+          name: "Automated Build #${{ github.run_number }}"
           draft: false
           prerelease: false
-          files: |
-            publish/win-x64/**
+          files: publish/win-x64/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
