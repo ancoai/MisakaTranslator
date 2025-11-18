@@ -20,17 +20,21 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # 3. Install Windows 10 SDK 22621 (non-redirect, stable official link)
-      - name: Install Windows 10 SDK 10.0.22621
+      # 3. Install Windows 10 SDK via Visual Studio Installer (never 404)
+      - name: Install Windows 10 SDK
         shell: pwsh
         run: |
-          Write-Host "Downloading Windows SDK 22621..."
-          Invoke-WebRequest -Uri "https://download.microsoft.com/download/4/5/c/45c50e2f-4fd1-4f70-8298-1dfd3f24fcbf/windowssdk_win10_22621.exe" -OutFile "winsdk.exe"
-          Write-Host "Installing Windows SDK..."
-          Start-Process .\winsdk.exe -ArgumentList "/quiet /norestart" -NoNewWindow -Wait
-          Write-Host "Windows SDK installed."
+          Write-Host "Installing Windows 10 SDK + WinRT..."
+          $vsInstaller = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
+          & $vsInstaller modify `
+            --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" `
+            --add Microsoft.VisualStudio.Component.Windows10SDK.22621 `
+            --add Microsoft.VisualStudio.Component.Windows10SDK.19041 `
+            --add Microsoft.VisualStudio.ComponentGroup.UWP.VC `
+            --quiet --norestart --nocache
+          Write-Host "SDK installation complete."
 
-      # 4. Restore packages
+      # 4. Restore NuGet packages
       - name: Restore NuGet packages
         run: dotnet restore
 
@@ -38,18 +42,18 @@ jobs:
       - name: Build Release
         run: dotnet build --configuration Release
 
-      # 6. Publish Win-x64 (self-contained OFF)
+      # 6. Publish Win-x64
       - name: Publish Win-x64
         run: dotnet publish MisakaTranslator-WPF/MisakaTranslator-WPF.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64
 
-      # 7. Upload build artifact
+      # 7. Upload artifact
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: MisakaTranslator-win-x64
           path: publish/win-x64/
 
-      # 8. Auto Release (tag + release)
+      # 8. Auto Release
       - name: Create Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
