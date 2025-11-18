@@ -1,16 +1,18 @@
 name: CI
+
 on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:   # ←✨ 手动触发关键行
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@master
-    - uses: actions/setup-dotnet@v3
-    - run: dotnet build
-    - uses: actions/upload-artifact@master
-      with:
-        path: MisakaTranslator-WPF/bin
+      - uses: actions/checkout@v4   # 推荐改成 v4（官方最新稳定版）
+      - uses: actions/setup-dotnet@v3
+      - run: dotnet build
+      - uses: actions/upload-artifact@v4
+        with:
+          path: MisakaTranslator-WPF/bin
